@@ -48,6 +48,15 @@ export function saveRows(key: string, rows: EntryRow[]): void {
   }
 }
 
+// 多模块成套写入：先落盘再换缓存，任何一步抛错都不动现有数据，保证整套回滚、不留半条记录。
+export function saveBatch(entries: Record<string, EntryRow[]>): void {
+  const next = { ...allRows(), ...entries }
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  }
+  cache = next
+}
+
 export function resetRows(key: string): EntryRow[] {
   const rows = clone(SEED_ROWS[key] ?? [])
   saveRows(key, rows)
