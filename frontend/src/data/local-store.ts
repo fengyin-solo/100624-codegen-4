@@ -48,6 +48,25 @@ export function saveRows(key: string, rows: EntryRow[]): void {
   }
 }
 
+// 整套落库：调用方先在自己那份拷贝上改完所有模块，再一次性提交。
+// 写入失败（如存储超限）时内存缓存也一并还原，不允许只写进去半条记录。
+export function commitAll(next: Record<string, EntryRow[]>): void {
+  const prev = cache
+  cache = next
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    }
+  } catch (error) {
+    cache = prev
+    throw error
+  }
+}
+
+export function cloneAll(): Record<string, EntryRow[]> {
+  return clone(allRows())
+}
+
 export function resetRows(key: string): EntryRow[] {
   const rows = clone(SEED_ROWS[key] ?? [])
   saveRows(key, rows)

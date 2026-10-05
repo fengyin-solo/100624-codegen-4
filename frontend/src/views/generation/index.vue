@@ -12,9 +12,25 @@
     </header>
 
     <div class="stat-row">
-      <article v-for="item in stats" :key="item.label" class="stat-card">
-        <span class="stat-label">{{ item.label }}</span>
-        <strong class="stat-value">{{ item.value }}</strong>
+      <article class="stat-card">
+        <span class="stat-label">依据测次</span>
+        <strong class="stat-value">{{ sediment.latestBatch }}</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">累计库容损失(万m³)</span>
+        <strong class="stat-value">{{ sediment.totalLoss.toFixed(2) }}</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">可用库容(万m³)</span>
+        <strong class="stat-value">{{ sediment.availableCapacity.toFixed(2) }}</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">可用台数(台)</span>
+        <strong class="stat-value">{{ sediment.availableUnits }}</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">估算日发电量(万kWh)</span>
+        <strong class="stat-value">{{ sediment.dailyEnergy.toFixed(2) }}</strong>
       </article>
     </div>
 
@@ -64,7 +80,7 @@
     </table>
 
     <footer class="page-foot">
-      <span>共 {{ total }} 条发电计划记录</span>
+      <span>共 {{ total }} 条发电计划记录；待编制/已下达计划的日发电量已按测次 {{ sediment.latestBatch }} 重算回写，可用台数与库区测淤台账一致</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
   </section>
@@ -79,19 +95,21 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { sedimentSummary } from '@/api/sediment-service'
+import type { SedimentSummary } from '@/api/sediment-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('generation')
 const columns = ["计划编号", "计划日期", "计划出力", "实际出力", "日发电量", "上网电量", "完成比率", "计划状态"]
 const actions = ["提交编制", "下达计划", "确认完成"]
 const statuses = ["待编制", "已下达", "执行中", "已完成"]
-const stats = [{"label": "计划发电量", "value": 0}, {"label": "实际发电量", "value": 0}, {"label": "计划完成率", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+const sediment = ref<SedimentSummary>(sedimentSummary())
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
     status,
@@ -128,6 +146,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    sediment.value = sedimentSummary()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '发电计划列表读取失败'
   }
